@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>H3 模型本地部署 - 硬件配置与启动命令</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0e1a;--bg-card:#121829;--bg-hover:#1a2138;--border:#1e293b;
+  --text:#e2e8f0;--text-muted:#94a3b8;--text-dim:#64748b;
+  --accent:#3b82f6;--accent-light:#60a5fa;--accent-glow:rgba(59,130,253,0.3);
+  --green:#10b981;--green-glow:rgba(16,185,129,0.2);
+  --orange:#f59e0b;--orange-glow:rgba(245,158,11,0.2);
+  --red:#ef4444;--red-glow:rgba(239,68,68,0.2);
+  --purple:#8b5cf6;--purple-glow:rgba(139,92,246,0.2);
+  --cyan:#06b6d4;--cyan-glow:rgba(6,182,212,0.2);
+}
+body{font-family:'Noto Sans SC',-apple-system,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+.mono{font-family:'JetBrains Mono','Fira Code',monospace}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:#334155;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#475569}
+
+.header{position:sticky;top:0;z-index:100;background:rgba(10,14,26,0.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;height:64px;display:flex;align-items:center;gap:24px}
+.header-logo{font-weight:900;font-size:18px;background:linear-gradient(135deg,var(--accent),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.header-tabs{display:flex;gap:4px;flex:1;overflow-x:auto}
+.header-tab{padding:8px 16px;border-radius:8px;font-size:14px;font-weight:500;color:var(--text-muted);cursor:pointer;transition:all .2s;white-space:nowrap;border:none;background:none;font-family:inherit}
+.header-tab:hover{background:var(--bg-hover);color:var(--text)}
+.header-tab.active{background:var(--accent-glow);color:var(--accent-light)}
+
+.main{max-width:1280px;margin:0 auto;padding:32px 24px 80px}
+.section{display:none;animation:fadeIn .4s ease}
+.section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px;transition:border-color .2s}
+.card:hover{border-color:#334155}
+.card-title{font-size:20px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.card-subtitle{font-size:14px;color:var(--text-muted);margin-bottom:20px;line-height:1.7}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600;white-space:nowrap}
+.badge-green{background:var(--green-glow);color:var(--green)}
+.badge-orange{background:var(--orange-glow);color:var(--orange)}
+.badge-red{background:var(--red-glow);color:var(--red)}
+.badge-blue{background:var(--accent-glow);color:var(--accent-light)}
+.badge-purple{background:var(--purple-glow);color:var(--purple)}
+.badge-cyan{background:var(--cyan-glow);color:var(--cyan)}
+.badge-gray{background:#1e293b;color:var(--text-muted)}
+
+/* Config tabs */
+.config-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.config-tab{flex:1;min-width:200px;padding:16px 20px;border-radius:12px;border:2px solid var(--border);background:var(--bg-card);cursor:pointer;transition:all .2s;text-align:left}
+.config-tab:hover{border-color:#334155}
+.config-tab.active{border-color:var(--accent);background:var(--accent-glow)}
+.config-tab-label{font-size:12px;color:var(--text-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px}
+.config-tab-name{font-size:16px;font-weight:700;color:var(--text)}
+.config-tab.active .config-tab-name{color:var(--accent-light)}
+.config-tab-desc{font-size:12px;color:var(--text-muted);margin-top:4px}
+
+/* Hardware table */
+.hw-table{width:100%;border-collapse:collapse;font-size:14px;margin-top:12px}
+.hw-table th{text-align:left;padding:12px 16px;background:var(--bg-hover);color:var(--text-muted);font-weight:600;border-bottom:2px solid var(--border)}
+.hw-table td{padding:12px 16px;border-bottom:1px solid var(--border)}
+.hw-table td:first-child{font-weight:600;color:var(--accent-light);width:140px}
+.hw-table td:nth-child(2){color:var(--text);font-weight:500}
+.hw-table tr:hover td{background:var(--bg-hover)}
+
+/* Command block */
+.cmd-block{background:#0d1117;border:1px solid var(--border);border-radius:10px;padding:16px;margin:12px 0;position:relative;overflow-x:auto}
+.cmd-block pre{font-family:'JetBrains Mono',monospace;font-size:13px;color:#c9d1d9;white-space:pre-wrap;word-break:break-all;line-height:1.5}
+.cmd-block .c-comment{color:#8b949e}
+.cmd-block .c-cmd{color:#79c0ff}
+.cmd-block .c-arg{color:#d2a8ff}
+.cmd-block .c-str{color:#a5d6ff}
+.cmd-block .c-var{color:#ffa657}
+.cmd-copy{position:absolute;top:8px;right:8px;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-muted);font-size:11px;cursor:pointer;transition:all .2s;font-family:inherit}
+.cmd-copy:hover{color:var(--text);border-color:var(--accent)}
+.cmd-label{font-size:13px;font-weight:600;color:var(--accent-light);margin:20px 0 8px;display:flex;align-items:center;gap:6px}
+
+/* Stat grid */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:16px 0}
+.stat-item{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+.stat-item-label{font-size:11px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+.stat-item-value{font-size:20px;font-weight:700;color:var(--accent-light)}
+.stat-item-detail{font-size:11px;color:var(--text-dim);margin-top:4px}
+
+/* Warning box */
+.warning-box{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:12px;padding:16px;margin:16px 0}
+.warning-box-title{color:var(--orange);font-weight:700;font-size:14px;margin-bottom:8px}
+.warning-box-content{font-size:13px;color:var(--text-muted);line-height:1.7}
+
+.info-box{background:rgba(59,130,253,0.08);border:1px solid rgba(59,130,253,0.3);border-radius:12px;padding:16px;margin:16px 0}
+.info-box-title{color:var(--accent-light);font-weight:700;font-size:14px;margin-bottom:8px}
+
+/* Perf table */
+.perf-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+.perf-table th{text-align:center;padding:10px 12px;background:var(--bg-hover);color:var(--text-muted);font-weight:600;border-bottom:2px solid var(--border)}
+.perf-table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;color:var(--text-muted)}
+.perf-table td:first-child{text-align:left;font-weight:600;color:var(--text)}
+.perf-table tr:hover td{background:var(--bg-hover)}
+
+/* Framework selector */
+.fw-selector{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.fw-btn{padding:10px 20px;border-radius:10px;border:2px solid var(--border);background:var(--bg-card);color:var(--text-muted);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;font-family:inherit}
+.fw-btn:hover{border-color:#334155;color:var(--text)}
+.fw-btn.active{border-color:var(--accent);background:var(--accent-glow);color:var(--accent-light)}
+
+/* File tree */
+.file-tree{background:#0d1117;border:1px solid var(--border);border-radius:10px;padding:16px;margin:12px 0;font-family:'JetBrains Mono',monospace;font-size:13px;color:#c9d1d9;line-height:1.6;overflow-x:auto}
+.file-tree .dir{color:var(--accent-light);font-weight:600}
+.file-tree .file{color:var(--text-muted)}
+.file-tree .size{color:var(--orange)}
+.file-tree .comment{color:#8b949e}
+
+/* Timeline */
+.timeline{position:relative;padding-left:32px}
+.timeline::before{content:'';position:absolute;left:12px;top:0;bottom:0;width:2px;background:var(--border)}
+.timeline-item{position:relative;margin-bottom:24px}
+.timeline-item::before{content:'';position:absolute;left:-26px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+.timeline-item-title{font-weight:700;font-size:15px;margin-bottom:6px}
+.timeline-item-content{font-size:13px;color:var(--text-muted);line-height:1.7}
+
+@media(max-width:768px){
+  .header{padding:0 12px}
+  .main{padding:16px 12px 60px}
+  .config-tab{min-width:100%}
+  .hw-table{font-size:12px}
+  .hw-table td:first-child{width:100px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">H3 部署指南</div>
+  <div class="header-tabs">
+    <button class="header-tab active" data-section="overview">模型概览</button>
+    <button class="header-tab" data-section="hardware">硬件配置</button>
+    <button class="header-tab" data-section="download">模型下载</button>
+    <button class="header-tab" data-section="startup">启动命令</button>
+    <button class="header-tab" data-section="performance">性能实测</button>
+    <button class="header-tab" data-section="params">关键参数</button>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ====== 概览 ====== -->
+<div class="section active" id="section-overview">
+  <div class="card">
+    <div class="card-title">MiniMax H3 模型概览</div>
+    <div class="card-subtitle">
+      MiniMax H3 是 2026 年 7 月 31 日发布的<strong>全模态视频生成模型</strong>（海螺 AI 3.0），
+      支持文本/图像/视频/音频多模态输入，输出 2K 分辨率、最长 15 秒、24FPS 视频及 32kHz 立体声音频。
+      <strong style="color:var(--orange)">注意：H3 不是传统文本 LLM，而是视频生成模型。</strong>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-item"><div class="stat-item-label">参数量</div><div class="stat-item-value">33B</div><div class="stat-item-detail">Dense Transformer</div></div>
+      <div class="stat-item"><div class="stat-item-label">仓库总大小</div><div class="stat-item-value">498 GB</div><div class="stat-item-detail">含两个checkpoint</div></div>
+      <div class="stat-item"><div class="stat-item-label">单checkpoint</div><div class="stat-item-value">135 GB</div><div class="stat-item-detail">BF16 safetensors</div></div>
+      <div class="stat-item"><div class="stat-item-label">量化版最小</div><div class="stat-item-value">~40 GB</div><div class="stat-item-detail">ComfyUI INT8</div></div>
+      <div class="stat-item"><div class="stat-item-label">开源协议</div><div class="stat-item-value" style="font-size:14px">社区许可</div><div class="stat-item-detail">排除欧盟/英美/韩国</div></div>
+      <div class="stat-item"><div class="stat-item-label">支持框架</div><div class="stat-item-value" style="font-size:14px">SGLang</div><div class="stat-item-detail">vLLM-Omni/diffusers/ComfyUI</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">模型结构与文件组成</div>
+    <div class="card-subtitle">H3 包含两个独立任务 checkpoint：FL2VA（文生视频）和 Ref2VA（参考生视频），各自约 135GB。</div>
+    <div class="file-tree">
+<span class="dir">MiniMax-H3/</span>                        <span class="comment"># 仓库根目录 ~498GB</span>
+├── <span class="dir">FL2VA/</span>                         <span class="comment"># 文生视频任务 ~135GB</span>
+│   ├── <span class="file">model_index.json</span>
+│   ├── <span class="dir">processor/</span>                  <span class="comment"># 多模态预处理器</span>
+│   ├── <span class="dir">tokenizer/</span>                  <span class="comment"># 分词器</span>
+│   ├── <span class="dir">text_encoder/</span>              <span class="comment"># Qwen3-VL-32B 编码器 ~25GB</span>
+│   ├── <span class="dir">transformer/</span>               <span class="comment"># DiT 核心生成模型</span>
+│   ├── <span class="dir">visual_vae/</span>               <span class="comment"># 视频VAE <span class="size">4.9GB</span></span>
+│   └── <span class="dir">audio_vae/</span>                <span class="comment"># 音频VAE <span class="size">0.6GB</span></span>
+└── <span class="dir">Ref2VA/</span>                        <span class="comment"># 参考生视频任务 ~135GB</span>
+    └── <span class="comment">(结构同FL2VA)</span>
+
+<span class="comment"># ComfyUI 量化版文件 (Comfy-Org/MiniMax-H3)</span>
+<span class="dir">ComfyUI/models/</span>
+├── <span class="dir">diffusion_models/</span>
+│   ├── <span class="file">minimax_h3_fl2va_pruned_int8_convrot.safetensors</span>  <span class="size">19.5 GB</span>
+│   └── <span class="file">minimax_h3_ref2va_pruned_int8_convrot.safetensors</span> <span class="size">~19.5 GB</span>
+├── <span class="dir">text_encoders/</span>
+│   └── <span class="file">qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors</span>     <span class="size">14.6 GB</span>
+└── <span class="dir">vae/</span>
+    ├── <span class="file">minimax_h3_video_vae_fp16.safetensors</span>           <span class="size">4.9 GB</span>
+    └── <span class="file">minimax_h3_audio_vae_fp32.safetensors</span>           <span class="size">0.6 GB</span>
+    </div>
+    <div class="warning-box">
+      <div class="warning-box-title">重要提示</div>
+      <div class="warning-box-content">
+        <strong>FL2VA 和 Ref2VA 是两个独立分区</strong>，各自约 135GB，不能混用。<br>
+        H3-Context-IR（多模态预处理）和 H3-Regenerate-2K（2K 再生成）模块<strong>未开源</strong>，仅提供 API。<br>
+        MiniMaxAI/MiniMax-H3 仓库需接受社区许可协议后才能下载；Comfy-Org/MiniMax-H3 不需要协议。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 硬件配置 ====== -->
+<div class="section" id="section-hardware">
+  <div class="card">
+    <div class="card-title">硬件配置清单</div>
+    <div class="card-subtitle">根据部署场景选择配置级别。点击下方选项卡查看不同级别的完整硬件清单。</div>
+
+    <div class="config-tabs">
+      <div class="config-tab active" data-config="min">
+        <div class="config-tab-label">入门级</div>
+        <div class="config-tab-name">最低配置</div>
+        <div class="config-tab-desc">ComfyUI 量化版 · 低分辨率短视频</div>
+      </div>
+      <div class="config-tab" data-config="rec">
+        <div class="config-tab-label">主流级</div>
+        <div class="config-tab-name">推荐配置</div>
+        <div class="config-tab-desc">ComfyUI INT8 · 流畅 768p 视频</div>
+      </div>
+      <div class="config-tab" data-config="pro">
+        <div class="config-tab-label">专业级</div>
+        <div class="config-tab-name">多卡配置</div>
+        <div class="config-tab-desc">vLLM-Omni BF16 · 生产服务</div>
+      </div>
+      <div class="config-tab" data-config="max">
+        <div class="config-tab-label">旗舰级</div>
+        <div class="config-tab-name">集群配置</div>
+        <div class="config-tab-desc">8×96GB · 最高性能</div>
+      </div>
+    </div>
+
+    <div id="configContent"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">各精度下显存需求</div>
+    <div class="card-subtitle">不同精度和部署方式下的精确显存需求及实测峰值。</div>
+    <table class="perf-table">
+      <thead><tr><th>精度/版本</th><th>文件大小</th><th>显存需求</th><th>适用GPU</th><th>部署方式</th></tr></thead>
+      <tbody>
+        <tr><td>BF16 全精度</td><td>~135 GB/分区</td><td style="color:var(--red)">~123 GB</td><td>RTX PRO 6000 96GB×2+</td><td>vLLM-Omni / SGLang</td></tr>
+        <tr><td>INT8 量化(ComfyUI)</td><td>19.5 GB</td><td style="color:var(--orange)">~42.5 GB</td><td>RTX 4090 24GB(卸载)</td><td>ComfyUI</td></tr>
+        <tr><td>NVFP4 文本编码器</td><td>14.6 GB</td><td style="color:var(--green)">~15.7 GB</td><td>RTX 3060 12GB+</td><td>ComfyUI</td></tr>
+        <tr><td>INT8 文本编码器</td><td>~25.3 GB</td><td style="color:var(--orange)">~15.7 GB</td><td>RTX 4090 24GB</td><td>ComfyUI</td></tr>
+        <tr><td>FP8(vLLM在线量化)</td><td>—</td><td style="color:var(--orange)">降低~40%</td><td>H100/A100</td><td>vLLM-Omni</td></tr>
+        <tr><td>GGUF Q2(社区版)</td><td>~8.5 GB</td><td style="color:var(--green)">极低</td><td>8GB+ 显卡</td><td>实验性</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">vLLM-Omni 多卡显存实测</div>
+    <div class="card-subtitle">BF16 全精度在 RTX PRO 6000 Blackwell (96GB) 上的单卡峰值显存。</div>
+    <table class="perf-table">
+      <thead><tr><th>GPU配置</th><th>并行策略</th><th>单卡峰值显存</th><th>端到端耗时(50步)</th></tr></thead>
+      <tbody>
+        <tr><td>2× 96GB</td><td>TP2 + USP1</td><td style="color:var(--orange)">77.49 GB</td><td>284.76s</td></tr>
+        <tr><td>4× 96GB</td><td>TP2 + USP2</td><td style="color:var(--green)">66.44 GB</td><td>172.32s</td></tr>
+        <tr><td>8× 96GB</td><td>TP2 + USP4</td><td style="color:var(--green)">61.07 GB</td><td>90.48s</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ====== 模型下载 ====== -->
+<div class="section" id="section-download">
+  <div class="card">
+    <div class="card-title">模型下载</div>
+    <div class="card-subtitle">根据部署框架选择对应仓库下载。MiniMaxAI 仓库需先在 HuggingFace 页面接受许可协议。</div>
+
+    <div class="cmd-label"><span class="badge badge-blue">方式一</span> 下载 BF16 全精度（SGLang / vLLM-Omni / diffusers）</div>
+    <div class="cmd-block">
+      <button class="cmd-copy" onclick="copyCmd(this)">复制</button>
+      <pre><span class="c-comment"># 设置国内镜像加速</span>
+<span class="c-cmd">export</span> HF_ENDPOINT=https://hf-mirror.com
+
+<span class="c-comment"># 下载 FL2VA (文生视频) 约135GB</span>
+<span class="c-cmd">huggingface-cli download</span> <span class="c-str">MiniMaxAI/MiniMax-H3</span> \
+  --include <span class="c-str">"model_index.json"</span> <span class="c-str">"FL2VA/*"</span> \
+  --local-dir ./MiniMax-H3
+
+<span class="c-comment"># 下载 Ref2VA (参考生视频) 约135GB</span>
+<span class="c-cmd">huggingface-cli download</span> <span class="c-str">MiniMaxAI/MiniMax-H3</span> \
+  --include <span class="c-str">"model_index.json"</span> <span class="c-str">"Ref2VA/*"</span> \
+  --local-dir ./MiniMax-H3
+
+<span class="c-comment"># 下载全部 (两个分区) 约498GB</span>
+<span class="c-cmd">huggingface-cli download</span> <span class="c-str">MiniMaxAI/MiniMax-H3</span> \
+  --local-dir ./MiniMax-H3</pre>
+    </div>
+
+    <div class="cmd-label"><span class="badge badge-green">方式二</span> 下载 ComfyUI 量化版（INT8/NVFP4）约 40-50GB</div>
+    <div class="cmd-block">
+      <button class="cmd-copy" onclick="copyCmd(this)">复制</button>
+      <pre><span class="c-comment"># 下载 FL2VA 量化版</span>
+<span class="c-cmd">huggingface-cli download</span> <span class="c-str">Comfy-Org/MiniMax-H3</span> \
+  --include <span class="c-str">"FL2VA/*"</span> \
+  --local-dir ./ComfyUI/models/diffusers/MiniMax-H3
+
+<span class="c-comment"># 文件需同时放置到两个目录</span>
+<span class="c-cmd">cp</span> -r ./ComfyUI/models/diffusers/MiniMax-H3/* \
+      ./ComfyUI/models/MiniMax-H3/</pre>
+    </div>
+
+    <div class="cmd-label"><span class="badge badge-purple">方式三</span> ModelScope 魔搭社区下载</div>
+    <div class="cmd-block">
+      <button class="cmd-copy" onclick="copyCmd(this)">复制</button>
+      <pre><span class="c-comment"># 安装 modelscope</span>
+<span class="c-cmd">pip install</span> modelscope
+
+<span class="c-comment"># 下载完整模型</span>
+<span class="c-cmd">modelscope download</span> <span class="c-str">MiniMaxAI/MiniMax-H3</span> \
+  --local_dir ./MiniMax-H3</pre>
+    </div>
+
+    <div class="cmd-label"><span class="badge badge-cyan">方式四</span> diffusers 自动下载（代码内自动拉取）</div>
+    <div class="cmd-block">
+      <button class="cmd-copy" onclick="copyCmd(this)">复制</button>
+      <pre><span class="c-comment"># Python 代码中自动下载所需组件</span>
+<span class="c-cmd">from</span> diffusers <span class="c-cmd">import</span> ModularPipeline
+
+pipeline = ModularPipeline.from_pretrained(<span class="c-str">"MiniMaxAI/MiniMax-H3"</span>)</pre>
+    </div>
+
+    <div class="warning-box">
+      <div class="warning-box-title">下载注意事项</div>
+      <div class="warning-box-content">
+        <strong>1.</strong> MiniMaxAI/MiniMax-H3 需要在 HuggingFace 页面接受社区许可协议，否则下载会报权限错误。<br>
+        <strong>2.</strong> 许可协议排除地域：欧盟、英国、韩国、美国。其他地区可正常使用。<br>
+        <strong>3.</strong> Comfy-Org/MiniMax-H3 不需要接受社区协议，可直接下载。<br>
+        <strong>4.</strong> 全精度下载约 498GB，确保磁盘空间充足（建议 1TB+ NVMe SSD）。<br>
+        <strong>5.</strong> 国内用户建议使用 hf-mirror.com 镜像或 ModelScope 加速下载。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 启动命令 ====== -->
+<div class="section" id="section-startup">
+  <div class="card">
+    <div class="card-title">启动命令</div>
+    <div class="card-subtitle">选择部署框架查看对应的启动命令。每个框架支持不同的硬件配置和精度。</div>
+
+    <div class="fw-selector">
+      <button class="fw-btn active" data-fw="vllm">vLLM-Omni</button>
+      <button class="fw-btn" data-fw="sglang">SGLang</button>
+      <button class="fw-btn" data-fw="comfyui">ComfyUI</button>
+      <button class="fw-btn" data-fw="diffusers">diffusers</button>
+    </div>
+
+    <div id="fwContent"></div>
+  </div>
+</div>
+
+<!-- ====== 性能实测 ====== -->
+<div class="section" id="section-performance">
+  <div class="card">
+    <div class="card-title">ComfyUI 量化版性能实测</div>
+    <div class="card-subtitle">不同消费级 GPU 上 ComfyUI INT8 量化版的视频生成耗时（5秒视频）。</div>
+    <table class="perf-table">
+      <thead><tr><th>GPU</th><th>显存</th><th>T2V 0.4mp</th><th>T2V 0.9mp</th><th>I2V 0.4mp</th><th>R2V 0.4mp</th></tr></thead>
+      <tbody>
+        <tr><td>RTX 3090</td><td>24GB</td><td>~89s</td><td>~250s</td><td>~86s</td><td>~60s</td></tr>
+        <tr><td>RTX 4080 Super</td><td>16GB</td><td>~55s</td><td>~140s</td><td>~50s</td><td>~36s</td></tr>
+        <tr><td>RTX 4090</td><td>24GB</td><td style="color:var(--green)">~39s</td><td style="color:var(--green)">~94s</td><td>~37s</td><td>~26s</td></tr>
+      </tbody>
+    </table>
+    <div style="font-size:12px;color:var(--text-dim);margin-top:8px">
+      0.4mp ≈ 768×544 分辨率 5秒视频 | 0.9mp ≈ 768×768 分辨率 5秒视频 | T2V=文生视频 I2V=图生视频 R2V=参考生视频
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">vLLM-Omni BF16 性能实测</div>
+    <div class="card-subtitle">RTX PRO 6000 Blackwell (96GB) 上 BF16 全精度部署的去噪与端到端耗时。</div>
+    <table class="perf-table">
+      <thead><tr><th>配置</th><th>并行策略</th><th>去噪50步</th><th>端到端</th><th>单卡峰值显存</th></tr></thead>
+      <tbody>
+        <tr><td>2× 96GB</td><td>TP2 + USP1</td><td>278.55s</td><td>284.76s</td><td style="color:var(--orange)">77.49 GB</td></tr>
+        <tr><td>4× 96GB</td><td>TP2 + USP2</td><td>168.73s</td><td>172.32s</td><td style="color:var(--green)">66.44 GB</td></tr>
+        <tr><td>8× 96GB</td><td>TP2 + USP4</td><td style="color:var(--green)">87.90s</td><td style="color:var(--green)">90.48s</td><td style="color:var(--green)">61.07 GB</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">
+      <div class="info-box-title">并行策略说明</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.7">
+        <strong>TP (Tensor Parallel)</strong>：张量并行，将模型权重切分到多卡<br>
+        <strong>USP (Ulysses Sequence Parallel)</strong>：序列并行，将序列维度切分到多卡<br>
+        <strong>Ring</strong>：环形通信，用于跨卡数据交换<br>
+        <strong>VAE Patch Parallel</strong>：VAE 的分块并行，加速视频解码
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 关键参数 ====== -->
+<div class="section" id="section-params">
+  <div class="card">
+    <div class="card-title">ComfyUI 关键参数</div>
+    <table class="hw-table">
+      <thead><tr><th>参数</th><th>推荐值</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>分辨率</td><td>768p</td><td>原生短边768，2K需API(未开源H3-Regenerate-2K)</td></tr>
+        <tr><td>时长</td><td>5-10秒</td><td>5秒约85帧，10秒约170帧</td></tr>
+        <tr><td>帧数</td><td>124 / 170</td><td>24FPS，帧数需满足"除以17余5"</td></tr>
+        <tr><td>去噪步数</td><td>20起</td><td>INT8默认20步，画质不足可试25步</td></tr>
+        <tr><td>音频</td><td>开启</td><td>原生生成32kHz立体声音频</td></tr>
+        <tr><td>Turbo LoRA</td><td>可选</td><td>可压缩采样步数，加速生成</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">vLLM-Omni 请求参数</div>
+    <table class="hw-table">
+      <thead><tr><th>参数</th><th>推荐值</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>num_inference_steps</td><td>50</td><td>去噪步数，越多质量越好但越慢</td></tr>
+        <tr><td>flow_shift</td><td>12</td><td>Flow Matching调度参数</td></tr>
+        <tr><td>fps</td><td>24</td><td>输出视频帧率</td></tr>
+        <tr><td>aspect_ratio</td><td>16:9</td><td>画面宽高比</td></tr>
+        <tr><td>duration</td><td>5.0</td><td>视频时长(秒)</td></tr>
+        <tr><td>audio_flow_shift</td><td>3.0</td><td>音频生成调度参数</td></tr>
+        <tr><td>seed</td><td>固定可复现</td><td>如1101，固定seed可复现结果</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ComfyUI 工作流模板</div>
+    <div class="card-subtitle">ComfyUI 内置 H3 工作流 JSON 模板文件。</div>
+    <div class="file-tree">
+<span class="dir">ComfyUI/workflows/</span>
+├── <span class="file">video_minimax_h3_t2v.json</span>     <span class="comment"># 文生视频</span>
+├── <span class="file">video_minimax_h3_i2v.json</span>     <span class="comment"># 图生视频</span>
+└── <span class="file">video_minimax_h3_r2v.json</span>     <span class="comment"># 参考生视频</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">ComfyUI 额外目录要求</div>
+    <div class="warning-box">
+      <div class="warning-box-title">必须同时存在两个目录</div>
+      <div class="warning-box-content">
+        ComfyUI 量化版模型文件需要<strong>同时出现在</strong>以下两个目录中，缺一不可：
+        <div class="file-tree" style="margin-top:8px">
+<span class="dir">ComfyUI/models/MiniMax-H3/</span>          <span class="comment"># 目录一</span>
+<span class="dir">ComfyUI/models/diffusers/MiniMax-H3/</span>  <span class="comment"># 目录二(必须同时存在)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ==================== Hardware Configs ====================
+const hwConfigs = {
+  min: {
+    title:"最低配置 - ComfyUI 量化版入门",
+    subtitle:"使用 ComfyUI INT8/NVFP4 量化模型，仅能生成低分辨率(768×544)短视频(5秒)，适合体验和测试。",
+    rows:[
+      ["GPU","RTX 3060 12GB / RTX 4060 12GB","12GB显存，INT8量化+CPU卸载"],
+      ["CPU","Intel i5-12400 / AMD R5 5600","6核以上，数据预处理需要"],
+      ["内存","32GB DDR4","offload卸载需要系统内存"],
+      ["存储","500GB NVMe SSD","量化模型约40-50GB+缓存输出"],
+      ["电源","550W 80Plus Bronze","12GB显卡整机平台"],
+      ["系统","Windows 11 / Ubuntu 22.04","ComfyUI跨平台支持"],
+      ["框架","ComfyUI ≥0.30.0","需要0.30.0+版本支持H3节点"],
+      ["精度","INT8 pruned + NVFP4","量化版模型文件"],
+      ["模型大小","~40-50 GB","Comfy-Org/MiniMax-H3"],
+      ["预期性能","0.4mp 5秒视频约90-250秒","低分辨率短视频"],
+    ]
+  },
+  rec: {
+    title:"推荐配置 - ComfyUI INT8 流畅运行",
+    subtitle:"RTX 4090 24GB 可较流畅运行 ComfyUI INT8 量化版，768p 5秒视频生成约39-94秒。",
+    rows:[
+      ["GPU","RTX 4090 24GB","24GB显存，ComfyUI实测最优消费卡"],
+      ["CPU","Intel i9-14900K / AMD R9 7950X","16核+，VAE解码有CPU参与"],
+      ["内存","64GB DDR5","稳定性更好，多任务并行"],
+      ["存储","1TB NVMe SSD","模型+缓存+视频输出"],
+      ["电源","850W 80Plus Gold","4090平台标配"],
+      ["散热","强力风冷或360水冷","长时间视频生成持续高负载"],
+      ["系统","Ubuntu 22.04 LTS","更适合ComfyUI和CLI部署"],
+      ["框架","ComfyUI ≥0.30.0","原生H3节点支持"],
+      ["精度","INT8 pruned convrot","量化版，质量接近BF16"],
+      ["模型大小","~40-50 GB","Comfy-Org/MiniMax-H3"],
+      ["预期性能","0.4mp约39秒，0.9mp约94秒","768p 5秒视频"],
+    ]
+  },
+  pro: {
+    title:"专业配置 - vLLM-Omni BF16 生产服务",
+    subtitle:"2-4张 96GB 显卡部署 BF16 全精度，可对外提供 API 服务。2卡端到端约285秒，4卡约172秒。",
+    rows:[
+      ["GPU","2-4× RTX PRO 6000 Blackwell 96GB","或 2-4× A100 80GB / H100 80GB"],
+      ["CPU","双路 AMD EPYC 9654 / Intel Xeon Platinum","48核+，多GPU调度需要"],
+      ["内存","256GB DDR5 ECC","BF16加载+KV Cache+并发"],
+      ["存储","4TB NVMe SSD","BF16单分区135GB，全部498GB"],
+      ["电源","2000W+ 钛金冗余","多GPU服务器功耗高"],
+      ["机箱","4U GPU服务器","支持4+双槽显卡"],
+      ["互联","PCIe Gen5 x16","无NVLink，跨卡走PCIe"],
+      ["系统","Ubuntu 22.04 LTS + Docker","生产环境标配"],
+      ["框架","vLLM-Omni","官方Docker: vllm/vllm-omni:minimax-h3"],
+      ["精度","BF16 全精度","最高质量，可选FP8在线量化"],
+      ["模型大小","~135 GB(单分区)","MiniMaxAI/MiniMax-H3"],
+      ["预期性能","2卡285秒，4卡172秒(50步)","768p 5秒视频"],
+    ]
+  },
+  max: {
+    title:"旗舰配置 - 8×96GB 集群最高性能",
+    subtitle:"8张 96GB 显卡部署 BF16 全精度，8卡端到端仅约90秒，适合大规模视频生成服务。",
+    rows:[
+      ["GPU","8× RTX PRO 6000 Blackwell 96GB","或 8× H100 80GB SXM(NVLink)"],
+      ["CPU","双路 AMD EPYC 9754","128核，8卡调度"],
+      ["内存","512GB DDR5 ECC","全模型加载+大batch并发"],
+      ["存储","8TB NVMe SSD RAID","全仓库498GB+缓存+输出"],
+      ["电源","4× 3000W 钛金冗余","8卡服务器总功耗极高"],
+      ["机箱","8U GPU服务器","专用GPU服务器机箱"],
+      ["互联","NVLink(若H100) / PCIe Gen5","NVLink带宽远高于PCIe"],
+      ["网络","100Gbps InfiniBand","多节点集群可选"],
+      ["系统","Ubuntu 22.04 LTS + K8s","云原生生产部署"],
+      ["框架","vLLM-Omni / SGLang","支持8卡TP2+USP4并行"],
+      ["精度","BF16 全精度","最高质量+最高吞吐"],
+      ["模型大小","~135 GB(单分区)","MiniMaxAI/MiniMax-H3"],
+      ["预期性能","8卡约90秒(50步)","768p 5秒视频，最快配置"],
+      ["成本估算","$350,000-$500,000+","完整8卡服务器"],
+    ]
+  }
+};
+
+function renderConfig(key){
+  const cfg = hwConfigs[key];
+  const el = document.getElementById('configContent');
+  el.innerHTML = `
+    <div style="margin-bottom:16px">
+      <div style="font-size:18px;font-weight:700;color:var(--accent-light)">${cfg.title}</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:4px">${cfg.subtitle}</div>
+    </div>
+    <table class="hw-table">
+      <thead><tr><th>组件</th><th>推荐型号</th><th>说明</th></tr></thead>
+      <tbody>
+        ${cfg.rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td style="color:var(--text-muted)">${r[2]}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+// ==================== Framework Commands ====================
+const fwCommands = {
+  vllm: {
+    title:"vLLM-Omni 部署",
+    subtitle:"官方推荐部署方式，支持 BF16 全精度多卡并行，提供 OpenAI 兼容 API。官方Docker镜像: vllm/vllm-omni:minimax-h3",
+    blocks:[
+      {
+        label:"Docker 一键部署（2卡配置）",
+        code:`<span class="c-cmd">docker run</span> --gpus all \\
+  -v /path/to/MiniMax-H3:/models \\
+  -p 8000:8000 \\
+  <span class="c-str">vllm/vllm-omni:minimax-h3</span> \\
+  --model-path /models/FL2VA \\
+  --omni \\
+  --trust-remote-code \\
+  --num-gpus <span class="c-arg">2</span> \\
+  --tensor-parallel-size <span class="c-arg">2</span> \\
+  --usp <span class="c-arg">1</span> \\
+  --ring <span class="c-arg">1</span> \\
+  --text-encoder-tp-size <span class="c-arg">2</span> \\
+  --vae-patch-parallel-size <span class="c-arg">2</span> \\
+  --vae-parallel-mode tile \\
+  --vae-use-tiling \\
+  --diffusion-attention-backend CUDNN_ATTN`
+      },
+      {
+        label:"直接部署 - 2卡 (TP2 + USP1)",
+        code:`<span class="c-cmd">export</span> MODEL_ROOT=/path/to/MiniMax-H3
+<span class="c-cmd">export</span> MODEL=<span class="c-str">"${MODEL_ROOT}/FL2VA"</span>
+<span class="c-cmd">export</span> PORT=8000
+
+VLLM_OMNI_VIDEO_SYNC_TIMEOUT=1800 \\
+<span class="c-cmd">vllm serve</span> <span class="c-str">"${MODEL}"</span> \\
+  --omni \\
+  --host 0.0.0.0 --port <span class="c-var">${PORT}</span> \\
+  --trust-remote-code \\
+  --num-gpus <span class="c-arg">2</span> \\
+  --tensor-parallel-size <span class="c-arg">2</span> \\
+  --usp <span class="c-arg">1</span> \\
+  --ring <span class="c-arg">1</span> \\
+  --text-encoder-tp-size <span class="c-arg">2</span> \\
+  --vae-patch-parallel-size <span class="c-arg">2</span> \\
+  --vae-parallel-mode tile \\
+  --vae-use-tiling \\
+  --diffusion-attention-backend CUDNN_ATTN`
+      },
+      {
+        label:"4卡配置 (TP2 + USP2)",
+        code:`<span class="c-cmd">export</span> MODEL_ROOT=/path/to/MiniMax-H3
+<span class="c-cmd">export</span> MODEL=<span class="c-str">"${MODEL_ROOT}/FL2VA"</span>
+
+VLLM_OMNI_VIDEO_SYNC_TIMEOUT=1800 \\
+<span class="c-cmd">vllm serve</span> <span class="c-str">"${MODEL}"</span> \\
+  --omni \\
+  --host 0.0.0.0 --port 8000 \\
+  --trust-remote-code \\
+  --num-gpus <span class="c-arg">4</span> \\
+  --tensor-parallel-size <span class="c-arg">2</span> \\
+  --usp <span class="c-arg">2</span> \\
+  --ring <span class="c-arg">1</span> \\
+  --text-encoder-tp-size <span class="c-arg">4</span> \\
+  --vae-patch-parallel-size <span class="c-arg">4</span> \\
+  --vae-parallel-mode tile \\
+  --vae-use-tiling \\
+  --diffusion-attention-backend CUDNN_ATTN`
+      },
+      {
+        label:"8卡配置 (TP2 + USP4) - 最快",
+        code:`<span class="c-cmd">export</span> MODEL_ROOT=/path/to/MiniMax-H3
+<span class="c-cmd">export</span> MODEL=<span class="c-str">"${MODEL_ROOT}/FL2VA"</span>
+
+VLLM_OMNI_VIDEO_SYNC_TIMEOUT=1800 \\
+<span class="c-cmd">vllm serve</span> <span class="c-str">"${MODEL}"</span> \\
+  --omni \\
+  --host 0.0.0.0 --port 8000 \\
+  --trust-remote-code \\
+  --num-gpus <span class="c-arg">8</span> \\
+  --tensor-parallel-size <span class="c-arg">2</span> \\
+  --usp <span class="c-arg">4</span> \\
+  --ring <span class="c-arg">1</span> \\
+  --text-encoder-tp-size <span class="c-arg">8</span> \\
+  --vae-patch-parallel-size <span class="c-arg">8</span> \\
+  --vae-parallel-mode tile \\
+  --vae-use-tiling \\
+  --diffusion-attention-backend CUDNN_ATTN`
+      },
+      {
+        label:"FP8 在线量化（可选，降低显存约40%）",
+        code:`<span class="c-comment"># 在上述命令中添加以下参数</span>
+  --quantization <span class="c-arg">fp8</span>
+
+<span class="c-comment"># 注意: FP8不能与layerwise offload组合使用</span>
+<span class="c-comment"># 适用于BF16驻留余量不足时降低显存</span>`
+      },
+      {
+        label:"API 调用示例（文生视频 T2VA）",
+        code:`<span class="c-cmd">export</span> API_URL=<span class="c-str">"http://127.0.0.1:8000/v1/videos/sync"</span>
+
+<span class="c-cmd">curl</span> -sS --max-time 1800 -X POST <span class="c-str">"${API_URL}"</span> \\
+  -F <span class="c-str">'prompt=At night, three cats march into a bedroom playing tiny brass instruments'</span> \\
+  -F <span class="c-str">'width=1344'</span> \\
+  -F <span class="c-str">'height=768'</span> \\
+  -F <span class="c-str">'aspect_ratio=16:9'</span> \\
+  -F <span class="c-str">'fps=24'</span> \\
+  -F <span class="c-str">'num_inference_steps=50'</span> \\
+  -F <span class="c-str">'flow_shift=12'</span> \\
+  -F <span class="c-str">'seed=1101'</span> \\
+  -F <span class="c-str">'extra_params={"task":"t2va","duration":5.0,"audio_flow_shift":3.0}'</span> \\
+  -o t2va_output.mp4`
+      }
+    ]
+  },
+  sglang: {
+    title:"SGLang 部署",
+    subtitle:"MiniMax 官方推荐的另一部署方式，4卡并行，原生支持 H3 模型变体切换。",
+    blocks:[
+      {
+        label:"安装 SGLang",
+        code:`<span class="c-cmd">pip install</span> <span class="c-str">sglang[all]</span>`
+      },
+      {
+        label:"启动 FL2VA 服务（文生视频，4卡）",
+        code:`<span class="c-cmd">sglang serve</span> \\
+  --model-path <span class="c-str">MiniMaxAI/MiniMax-H3</span> \\
+  --num-gpus <span class="c-arg">4</span> \\
+  --ulysses-degree <span class="c-arg">4</span> \\
+  --performance-mode speed \\
+  --host 0.0.0.0 \\
+  --port <span class="c-arg">30010</span> \\
+  --model-variant <span class="c-str">fl2va</span>`
+      },
+      {
+        label:"启动 Ref2VA 服务（参考生视频，4卡）",
+        code:`<span class="c-cmd">sglang serve</span> \\
+  --model-path <span class="c-str">MiniMaxAI/MiniMax-H3</span> \\
+  --num-gpus <span class="c-arg">4</span> \\
+  --ulysses-degree <span class="c-arg">4</span> \\
+  --performance-mode speed \\
+  --host 0.0.0.0 \\
+  --port <span class="c-arg">30011</span> \\
+  --model-variant <span class="c-str">ref2va</span>`
+      },
+      {
+        label:"关键参数说明",
+        code:`<span class="c-comment"># --model-variant: 选择任务变体</span>
+<span class="c-comment">#   fl2va  = 文本/图像 -> 视频+音频</span>
+<span class="c-comment">#   ref2va = 文本+参考(图/视频/音频) -> 视频+音频</span>
+
+<span class="c-comment"># --ulysses-degree: Ulysses序列并行度</span>
+<span class="c-comment">#   需与 --num-gpus 一致，4卡设4</span>
+
+<span class="c-comment"># --performance-mode: 性能模式</span>
+<span class="c-comment">#   speed  = 优先速度</span>
+<span class="c-comment">#   quality = 优先质量</span>
+
+<span class="c-comment"># 端口建议:</span>
+<span class="c-comment">#   FL2VA  -> 30010</span>
+<span class="c-comment">#   Ref2VA -> 30011</span>`
+      }
+    ]
+  },
+  comfyui: {
+    title:"ComfyUI 部署",
+    subtitle:"消费级 GPU 首选方案，使用 INT8/NVFP4 量化模型。最低 12GB 显存可运行，RTX 4090 性能最优。需 ComfyUI ≥0.30.0。",
+    blocks:[
+      {
+        label:"安装 ComfyUI",
+        code:`<span class="c-cmd">git clone</span> <span class="c-str">https://github.com/comfyanonymous/ComfyUI.git</span>
+<span class="c-cmd">cd</span> ComfyUI
+<span class="c-cmd">pip install</span> -r requirements.txt`
+      },
+      {
+        label:"下载量化模型文件",
+        code:`<span class="c-cmd">export</span> HF_ENDPOINT=https://hf-mirror.com
+
+<span class="c-comment"># 下载 FL2VA 量化版</span>
+<span class="c-cmd">huggingface-cli download</span> <span class="c-str">Comfy-Org/MiniMax-H3</span> \
+  --include <span class="c-str">"FL2VA/*"</span> \
+  --local-dir ./ComfyUI/models/diffusers/MiniMax-H3
+
+<span class="c-comment"># 文件需同时复制到第二个目录(必须)</span>
+<span class="c-cmd">cp</span> -r ./ComfyUI/models/diffusers/MiniMax-H3/* \
+      ./ComfyUI/models/MiniMax-H3/`
+      },
+      {
+        label:"模型文件放置结构",
+        code:`<span class="dir">ComfyUI/models/</span>
+├── <span class="dir">diffusion_models/</span>
+│   └── <span class="file">minimax_h3_fl2va_pruned_int8_convrot.safetensors</span>  <span class="c-comment">19.5 GB</span>
+├── <span class="dir">text_encoders/</span>
+│   └── <span class="file">qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors</span>     <span class="c-comment">14.6 GB</span>
+├── <span class="dir">vae/</span>
+│   ├── <span class="file">minimax_h3_video_vae_fp16.safetensors</span>           <span class="c-comment">4.9 GB</span>
+│   └── <span class="file">minimax_h3_audio_vae_fp32.safetensors</span>           <span class="c-comment">0.6 GB</span>
+├── <span class="dir">MiniMax-H3/</span>           <span class="c-comment"># 目录一(必须)</span>
+└── <span class="dir">diffusers/MiniMax-H3/</span>  <span class="c-comment"># 目录二(必须同时存在)</span>`
+      },
+      {
+        label:"启动 ComfyUI（单卡）",
+        code:`<span class="c-comment"># 标准启动</span>
+<span class="c-cmd">python</span> main.py
+
+<span class="c-comment"># 低显存模式(12-16GB显卡)</span>
+<span class="c-cmd">python</span> main.py --lowvram
+
+<span class="c-comment"># 极低显存模式(8GB显卡,实验级)</span>
+<span class="c-cmd">python</span> main.py --lowvram --medvram
+
+<span class="c-comment"># 双卡启动</span>
+CUDA_VISIBLE_DEVICES=0,1 <span class="c-cmd">python</span> main.py --lowvram
+
+<span class="c-comment"># 指定端口</span>
+<span class="c-cmd">python</span> main.py --port 8188`
+      },
+      {
+        label:"使用工作流模板",
+        code:`<span class="c-comment"># ComfyUI 内置 H3 工作流:</span>
+<span class="c-comment">#   workflows/video_minimax_h3_t2v.json  -> 文生视频</span>
+<span class="c-comment">#   workflows/video_minimax_h3_i2v.json  -> 图生视频</span>
+<span class="c-comment">#   workflows/video_minimax_h3_r2v.json  -> 参考生视频</span>
+
+<span class="c-comment"># 启动后在浏览器打开 http://localhost:8188</span>
+<span class="c-comment"># 菜单 -> 加载工作流 -> 选择对应JSON文件</span>
+
+<span class="c-comment"># 关键节点参数:</span>
+<span class="c-comment">#   分辨率: 768 (短边)</span>
+<span class="c-comment">#   帧数: 124 或 170 (需满足"除以17余5")</span>
+<span class="c-comment">#   去噪步数: 20 (INT8默认)</span>
+<span class="c-comment">#   音频: 开启 (32kHz立体声)</span>`
+      }
+    ]
+  },
+  diffusers: {
+    title:"diffusers / ModularPipeline 部署",
+    subtitle:"HuggingFace diffusers 库的模块化管道，代码内自动下载所需组件，适合 Python 开发者集成。",
+    blocks:[
+      {
+        label:"安装 diffusers",
+        code:`<span class="c-cmd">pip install</span> <span class="c-str">diffusers transformers accelerate safetensors</span>`
+      },
+      {
+        label:"Python 代码 - 加载并运行",
+        code:`<span class="c-cmd">from</span> diffusers <span class="c-cmd">import</span> ModularPipeline
+
+<span class="c-comment"># 自动下载并加载完整管道</span>
+pipeline = ModularPipeline.from_pretrained(
+    <span class="c-str">"MiniMaxAI/MiniMax-H3"</span>,
+    torch_dtype=torch.bfloat16,
+    device_map=<span class="c-str">"auto"</span>  <span class="c-comment"># 自动分配到多GPU</span>
+)
+
+<span class="c-comment"># 文生视频</span>
+output = pipeline(
+    prompt=<span class="c-str">"A serene mountain landscape at sunset"</span>,
+    width=1344,
+    height=768,
+    num_inference_steps=50,
+    flow_shift=12,
+    fps=24,
+    duration=5.0,
+    audio_flow_shift=3.0,
+    seed=1101
+)
+
+<span class="c-comment"># 保存结果</span>
+output.save(<span class="c-str">"output.mp4"</span>)`
+      },
+      {
+        label:"多 GPU 自动分配",
+        code:`<span class="c-cmd">import</span> torch
+<span class="c-cmd">from</span> diffusers <span class="c-cmd">import</span> ModularPipeline
+
+<span class="c-comment"># device_map="auto" 会自动将模型分配到多个GPU</span>
+<span class="c-comment"># 适合显存不足以单卡加载的场景</span>
+pipeline = ModularPipeline.from_pretrained(
+    <span class="c-str">"MiniMaxAI/MiniMax-H3"</span>,
+    torch_dtype=torch.bfloat16,
+    device_map=<span class="c-str">"auto"</span>
+)
+
+<span class="c-comment"># 指定FL2VA任务</span>
+pipeline = pipeline.use_task(<span class="c-str">"fl2va"</span>)`
+      }
+    ]
+  }
+};
+
+function renderFW(key){
+  const fw = fwCommands[key];
+  const el = document.getElementById('fwContent');
+  el.innerHTML = `
+    <div style="margin-bottom:20px">
+      <div style="font-size:18px;font-weight:700;color:var(--accent-light)">${fw.title}</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-top:4px;line-height:1.7">${fw.subtitle}</div>
+    </div>
+    ${fw.blocks.map(b=>`
+      <div class="cmd-label">${b.label}</div>
+      <div class="cmd-block">
+        <button class="cmd-copy" onclick="copyCmd(this)">复制</button>
+        <pre>${b.code}</pre>
+      </div>
+    `).join('')}
+  `;
+}
+
+// ==================== Helper ====================
+function copyCmd(btn){
+  const pre = btn.parentElement.querySelector('pre');
+  navigator.clipboard.writeText(pre.textContent).then(()=>{
+    btn.textContent='已复制';
+    setTimeout(()=>btn.textContent='复制',2000);
+  });
+}
+
+// ==================== Init ====================
+document.querySelectorAll('.header-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.header-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('section-'+tab.dataset.section).classList.add('active');
+  });
+});
+
+document.querySelectorAll('.config-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.config-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    renderConfig(tab.dataset.config);
+  });
+});
+
+document.querySelectorAll('.fw-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.fw-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderFW(btn.dataset.fw);
+  });
+});
+
+// Initial render
+renderConfig('min');
+renderFW('vllm');
+</script>
+</body>
+</html>
