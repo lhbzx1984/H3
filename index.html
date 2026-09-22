@@ -582,13 +582,13 @@ const fwCommands = {
       {
         label:"直接部署 - 2卡 (TP2 + USP1)",
         code:`<span class="c-cmd">export</span> MODEL_ROOT=/path/to/MiniMax-H3
-<span class="c-cmd">export</span> MODEL=<span class="c-str">"${MODEL_ROOT}/FL2VA"</span>
+<span class="c-cmd">export</span> MODEL=<span class="c-str">\${MODEL_ROOT}/FL2VA"</span>
 <span class="c-cmd">export</span> PORT=8000
 
 VLLM_OMNI_VIDEO_SYNC_TIMEOUT=1800 \\
-<span class="c-cmd">vllm serve</span> <span class="c-str">"${MODEL}"</span> \\
+<span class="c-cmd">vllm serve</span> <span class="c-str">\${MODEL}"</span> \\
   --omni \\
-  --host 0.0.0.0 --port <span class="c-var">${PORT}</span> \\
+  --host 0.0.0.0 --port <span class="c-var">\${PORT}</span> \\
   --trust-remote-code \\
   --num-gpus <span class="c-arg">2</span> \\
   --tensor-parallel-size <span class="c-arg">2</span> \\
@@ -603,10 +603,10 @@ VLLM_OMNI_VIDEO_SYNC_TIMEOUT=1800 \\
       {
         label:"4卡配置 (TP2 + USP2)",
         code:`<span class="c-cmd">export</span> MODEL_ROOT=/path/to/MiniMax-H3
-<span class="c-cmd">export</span> MODEL=<span class="c-str">"${MODEL_ROOT}/FL2VA"</span>
+<span class="c-cmd">export</span> MODEL=<span class="c-str">\${MODEL_ROOT}/FL2VA"</span>
 
 VLLM_OMNI_VIDEO_SYNC_TIMEOUT=1800 \\
-<span class="c-cmd">vllm serve</span> <span class="c-str">"${MODEL}"</span> \\
+<span class="c-cmd">vllm serve</span> <span class="c-str">\${MODEL}"</span> \\
   --omni \\
   --host 0.0.0.0 --port 8000 \\
   --trust-remote-code \\
@@ -623,10 +623,10 @@ VLLM_OMNI_VIDEO_SYNC_TIMEOUT=1800 \\
       {
         label:"8卡配置 (TP2 + USP4) - 最快",
         code:`<span class="c-cmd">export</span> MODEL_ROOT=/path/to/MiniMax-H3
-<span class="c-cmd">export</span> MODEL=<span class="c-str">"${MODEL_ROOT}/FL2VA"</span>
+<span class="c-cmd">export</span> MODEL=<span class="c-str">\${MODEL_ROOT}/FL2VA"</span>
 
 VLLM_OMNI_VIDEO_SYNC_TIMEOUT=1800 \\
-<span class="c-cmd">vllm serve</span> <span class="c-str">"${MODEL}"</span> \\
+<span class="c-cmd">vllm serve</span> <span class="c-str">\${MODEL}"</span> \\
   --omni \\
   --host 0.0.0.0 --port 8000 \\
   --trust-remote-code \\
@@ -652,7 +652,7 @@ VLLM_OMNI_VIDEO_SYNC_TIMEOUT=1800 \\
         label:"API 调用示例（文生视频 T2VA）",
         code:`<span class="c-cmd">export</span> API_URL=<span class="c-str">"http://127.0.0.1:8000/v1/videos/sync"</span>
 
-<span class="c-cmd">curl</span> -sS --max-time 1800 -X POST <span class="c-str">"${API_URL}"</span> \\
+<span class="c-cmd">curl</span> -sS --max-time 1800 -X POST <span class="c-str">\${API_URL}"</span> \\
   -F <span class="c-str">'prompt=At night, three cats march into a bedroom playing tiny brass instruments'</span> \\
   -F <span class="c-str">'width=1344'</span> \\
   -F <span class="c-str">'height=768'</span> \\
